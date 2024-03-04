@@ -1,38 +1,34 @@
 from bs4 import BeautifulSoup
 import requests
-# import main
+import csv
 
-url = 'https://www.ebay.com/itm/116010623346?itmmeta=01HQSNF4JDAQ4ZPZ2J283T8BZT&hash=item1b02c5a172:g:DJcAAOSw1N5le6so&itmprp=enc%3AAQAIAAAA4AWANgxJSbTfzRUukiiVqlrjbTxE0thUXFSEeQP5iIXGpLkT6uiYK%2BGrqH3xK891h9ENee5JOlYkxjxN%2F3da1q5wkIEgZW2ANVCAalgMIbA3npfAIjz0INnCgRGm%2B11szeKw96t1vriB9AkdOPVRWLeYvYP9VhyO57Nnx6co8rxTyawQRH3lJBlt%2B%2Bf8UgwCrP2ZF%2FRoDc%2FKXTj0PiWpVNaDtjMXOuPZclsXsif7I56Rg5IFri7vCZgATCAOfSJZyqGTqsXZAJihzDXVPHfQGuP15gD6wEnn8xtojr1%2Bi07k%7Ctkp%3ABk9SR8jJvLW-Yw'
-response =  requests.get(url)
 
-soup = BeautifulSoup(response.text, 'html.parser')  
-
-def ItemName_element_verification(Item_element):
+#Function to retreive Item's name
+def ItemName_element_verification(Item_element, writer):
     if Item_element:
         Item_Name = Item_element.text.strip()
-        print("Item Name:", Item_Name)
+        writer.writerow({'Item Name': Item_Name})
         return Item_Name
-  
     else: 
-        print("Item Element was not found")
-        
-def ItemPrice_element_verification(Item_element):
+        print("Item Name Element was not found")
+
+
+#Function to retreive Item's price
+def ItemPrice_element_verification(Item_element, writer):
     if Item_element:
         Item_Price = Item_element.text.strip()
-        print("Item Price:", Item_Price)
+        writer.writerow({'Item Price': Item_Price})
         return Item_Price
-  
     else: 
-        print("Item Element was not found")
-        
+        print("Item Price Element was not found")
 
 
-
-def Spec_Table_verification(Spec_Table_element):
+#Function to retreive Item's specs
+def Spec_Table_verification(Spec_Table_element, writer):
     table = Spec_Table_element
     # checks table element 
     if table:
-    # Loop through each row in the table
+        # Loop through each row in the table
         for row in table.find_all('div', class_='ux-layout-section-evo__row'):
             # Find all columns within the row
             columns = row.find_all('div', class_='ux-layout-section-evo__col')
@@ -45,6 +41,6 @@ def Spec_Table_verification(Spec_Table_element):
                 if label_element and content_element:
                     label = label_element.text.strip()
                     content = content_element.text.strip()
-                    print(f"{label}: {content}")
+                    writer.writerow({label: content})
     else:
         print("Table not found.")

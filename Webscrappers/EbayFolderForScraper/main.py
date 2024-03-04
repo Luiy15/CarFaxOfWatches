@@ -1,31 +1,61 @@
 from bs4 import BeautifulSoup
 import requests
 import FunctionsFile
+import csv
 
-#URL that it's scraping from
-url = 'https://www.ebay.com/itm/116010623346?itmmeta=01HQSNF4JDAQ4ZPZ2J283T8BZT&hash=item1b02c5a172:g:DJcAAOSw1N5le6so&itmprp=enc%3AAQAIAAAA4AWANgxJSbTfzRUukiiVqlrjbTxE0thUXFSEeQP5iIXGpLkT6uiYK%2BGrqH3xK891h9ENee5JOlYkxjxN%2F3da1q5wkIEgZW2ANVCAalgMIbA3npfAIjz0INnCgRGm%2B11szeKw96t1vriB9AkdOPVRWLeYvYP9VhyO57Nnx6co8rxTyawQRH3lJBlt%2B%2Bf8UgwCrP2ZF%2FRoDc%2FKXTj0PiWpVNaDtjMXOuPZclsXsif7I56Rg5IFri7vCZgATCAOfSJZyqGTqsXZAJihzDXVPHfQGuP15gD6wEnn8xtojr1%2Bi07k%7Ctkp%3ABk9SR8jJvLW-Yw'
-response =  requests.get(url)
-
-if response.status_code == 200: 
-    #assigns website url to soup
+# Function to scrape and process eBay search results page
+def scrape_ebay_search(url,writer):
+    
+    response = requests.get(url)
     soup = BeautifulSoup(response.text, 'html.parser') 
-     
-    #grabs and sets the element of the wanted to a var
-    Item_Name_element = soup.find(class_='x-item-title__mainTitle') 
-    Item_Price_element = soup.find(class_='x-price-primary')
+    overall_items = soup.find_all(class_='s-item s-item__pl-on-bottom')
     
-    #Looks for the table that has all the wathces info and grabs it's element
-    # Spec_Table_element = soup.find(class_='ux-layout-section-evo__item ux-layout-section-evo__item--table-view')
-    Spec_Table_element = soup.find('div', class_='ux-layout-section-evo__item--table-view')
-    
-    # This is so the program checks if the elements/table is fetchable
-    FunctionsFile.ItemName_element_verification(Item_Name_element)
-    FunctionsFile.ItemPrice_element_verification(Item_Price_element)
-    FunctionsFile.Spec_Table_verification(Spec_Table_element)
-    
+    for item in overall_items:   
+        # Extract item URL
+        item_url = item.find('a', class_='s-item__link')['href']
+        # Make a separate request to the item URL
+        item_response = requests.get(item_url)
+            
+        if item_response.status_code == 200:
+            item_soup = BeautifulSoup(item_response.text, 'html.parser')
+            # Extract item information from the item webpage
+            item_name_element = item_soup.find(class_='x-item-title__mainTitle')
+            item_price_element = item_soup.find(class_='x-price-primary')
+            spec_table_element = item_soup.find('div', class_='ux-layout-section-evo__item--table-view')
+            # Process item information
+            FunctionsFile.ItemName_element_verification(item_name_element, writer)
+            FunctionsFile.ItemPrice_element_verification(item_price_element, writer)
+            FunctionsFile.Spec_Table_verification(spec_table_element, writer)
+        else:
+            print(f'Failed to fetch item page: {item_url}')     
 
+##############################################################################################
+#start of code: 
+
+# URL of eBay search results page for Rolex men's watches
+url = 'https://www.ebay.com/sch/i.html?_from=R40&_nkw=rolex+mens+watch&_sacat=0&_ipg=240'
+response = requests.get(url)
+
+
+if response.status_code == 200:  
+    soup = BeautifulSoup(response.text, 'html.parser') 
+     #This creates and opens a csv with permission to write in it. 
+    with open('EbayRolex_data.csv', 'w', newline='', encoding='utf-8') as csvfile:
+        # column names
+        fieldnames = ['Item Name', 'Item Price', 'Specifications']
+        # makes writer object
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        #writes column names in the csv file
+        writer.writeheader()
+
+    # Start scraping eBay search results
+    scrape_ebay_search(url,writer)
     
+    #loops through function
+    next_page_link = soup.find('a', class_='pagination__next icon-link')
+    if next_page_link:
+        next_page_url = 'https://www.ebay.com' + next_page_link['href']
+        scrape_ebay_search(next_page_url,writer)
 else: 
-    print('Failed to fetch the website:', response.status_code)
-    
-    
+        print('Failed to fetch the website:', response.status_code)
+
